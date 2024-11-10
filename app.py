@@ -22,7 +22,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Charger le modèle Whisper une seule fois au démarrage
 print("Loading Whisper model...")
-model = whisper.load_model("medium")
+model = whisper.load_model("tiny")
 print("Whisper model loaded!")
 
 # Configuration des clés API
