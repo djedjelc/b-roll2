@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B-Roll Video Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8">Générateur de B-Roll Vidéo</h1>
+        
+        <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6">
+            <form id="uploadForm" class="space-y-4">
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">
+                        Sélectionnez votre vidéo
+                    </label>
+                    <input type="file" 
+                           name="video" 
+                           accept=".mp4,.mov,.avi"
+                           class="block w-full text-sm text-gray-500
+                                  file:mr-4 file:py-2 file:px-4
+                                  file:rounded-full file:border-0
+                                  file:text-sm file:font-semibold
+                                  file:bg-blue-50 file:text-blue-700
+                                  hover:file:bg-blue-100">
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-blue-500 text-white py-2 px-4 rounded-md
+                               hover:bg-blue-600 transition duration-200">
+                    Téléverser et traiter
+                </button>
+            </form>
+
+            <div id="progress" class="hidden mt-6">
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span>Progression</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                        <div class="bg-blue-600 h-2.5 rounded-full" 
+                             id="progressBar" 
+                             style="width: 0%"></div>
+                    </div>
+                </div>
+                <p id="status" class="mt-2 text-sm text-gray-600">Traitement en cours...</p>
+            </div>
+
+            <div id="download" class="hidden mt-6">
+                <a href="#" 
+                   id="downloadLink"
+                   class="block w-full text-center bg-green-500 text-white py-2 px-4 rounded-md
+                          hover:bg-green-600 transition duration-200">
+                    Télécharger la vidéo
+                </a>
+            </div>
+
+            <div id="error" class="hidden mt-6">
+                <p class="text-red-500"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const progress = document.getElementById('progress');
+        const progressBar = document.getElementById('progressBar');
+        const progressPercent = document.getElementById('progressPercent');
+        const status = document.getElementById('status');
+        const download = document.getElementById('download');
+        const downloadLink = document.getElementById('downloadLink');
+        const error = document.getElementById('error');
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+            
+            try {
+                progress.classList.remove('hidden');
+                download.classList.add('hidden');
+                error.classList.add('hidden');
+                
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) throw new Error('Erreur lors du téléversement');
+                
+                const { task_id } = await response.json();
+                pollStatus(task_id);
+            } catch (err) {
+                error.classList.remove('hidden');
+                error.querySelector('p').textContent = err.message;
+                progress.classList.add('hidden');
+            }
+        };
+
+        async function pollStatus(taskId) {
+            try {
+                const response = await fetch(`/status/${taskId}`);
+                const data = await response.json();
+                
+                if (data.status === 'processing') {
+                    progressBar.style.width = `${data.progress}%`;
+                    progressPercent.textContent = `${data.progress}%`;
+                    setTimeout(() => pollStatus(taskId), 1000);
+                }
+                else if (data.status === 'completed') {
+                    progressBar.style.width = '100%';
+                    progressPercent.textContent = '100%';
+                    status.textContent = 'Traitement terminé!';
+                    download.classList.remove('hidden');
+                    downloadLink.href = `/download/${taskId}`;
+                }
+                else if (data.status === 'error') {
+                    throw new Error(data.error || 'Une erreur est survenue');
+                }
+            } catch (err) {
+                error.classList.remove('hidden');
+                error.querySelector('p').textContent = err.message;
+                progress.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
