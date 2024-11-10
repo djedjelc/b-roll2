@@ -24,10 +24,6 @@ RUN mkdir -p uploads
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
-ENV PORT=5000
-
-# Expose port
-EXPOSE 5000
 
 # Run the application
 CMD ["python", "app.py"]
